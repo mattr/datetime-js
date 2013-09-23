@@ -4,7 +4,6 @@ var DateTime = (function() {
    *
    * @constructor
    * @this {DateTime}
-   * @param
    */
   var DateTime = function() {
     this.year = null;
@@ -15,6 +14,10 @@ var DateTime = (function() {
     this.seconds = null;
     this.meridian = null;
     this.init(arguments);
+    var valid = this.validate();
+    if (!valid) {
+      throw errorMessage(".ctor", "Invalid date specification!");
+    }
   };
 
   /**
@@ -38,19 +41,39 @@ var DateTime = (function() {
         throw errorMessage("#init", args);
       }
       setMeridian(this);
-
-      // if (arguments.length > 1) {
-      //   initFromFormatString(this, arguments[0], arguments[1]);
-      // }
-      // else if (arguments.length == 1) {
-      //   if (typeof(arguments[0]) === "Array") {
-      //     initFromArray(this, arguments[0]);
-      //   }
-      //   else {
-      //     initFromFormatString(this, arguments[0], "yyyy-MM-dd HH:mm:ss");
-      //   }
-      // }
-      // initDefault(this);
+    },
+    /**
+     * Validates the DateTime instance.
+     *
+     * Does not perform any sort of calculation. This just checks the ranges for each of the
+     * attributes in the DateTime instance.
+     *
+     * @this {DateTime}
+     */
+    validate: function() {
+      // Let's assume that people can write the date and it is valid.
+      var valid = true;
+      // If the month is outside the acceptable range, invalidate.
+      if (this.month < 1 || this.month > 12) {
+        valid = false;
+      }
+      // If the day is outside the available range, or doesn't match the current month, invalidate.
+      if (this.day < 1 || this.day > 31 || this.day > maxDaysInMonth(this)) {
+        valid = false;
+      }
+      // If the hours are outside the acceptable range, invalidate.
+      if (this.hours < 0 || this.hours > 24) {
+        valid = false;
+      }
+      // If the minutes are outside the acceptable range, invalidate.
+      if (this.minutes < 0 || this.minutes > 60) {
+        valid = false;
+      }
+      // If the seconds are outside the acceptable range, invalidate.
+      if (this.seconds < 0 || this.seconds > 60) {
+        valid = false;
+      }
+      return valid;
     },
     /**
      * Gets the name of the month.
@@ -182,26 +205,23 @@ var DateTime = (function() {
     "Saturday"
   ];
 
+  var daysInMonth = [31,28,31,30,31,30,31,31,30,31,30,31];
+
   /**
    * @private
    *
    * Initializes the DateTime object using the specified format string.
    * This is the inverse of the #toString/#toFormattedString functionality.
    *
-   * Not sure how we're going to do this one yet...
+   * @param {DateTime} datetime The current DateTime instance.
+   * @param {string} dateString The string representation of the required date/time.
+   * @param {string} formatString The specified format string to parse the dateString.
+   * @returns {DateTime} The current DateTime instance.
    */
   function initFromFormatString(datetime, dateString, formatString) {
-    var regExp = new RegExp("^(\\d{2})-(\\w{3})-(\\d{4}) (\\d{2}):(\\d{2})$");
-    console.log(makeRegExpy(formatString));
-    // TODO: How do we determine the order of the items that are matched?
-
-    var format = makeRegExpy(formatString);
-
+    var format = parameterize(formatString);
     var posRegExp = /(\(d{1,4}\)|\(M{1,4}\)|\(y{2,4}\)|\([hH]{1,2}\)|\(m{1,2}\)|\([tT]{2}\))/g;
-
     var positions = format.match(posRegExp);
-
-    console.log(positions);
 
     var re = format.replace(/\(y{2,4}\)/, "(\\d{2,4})");
     re = re.replace(/\(M{3,4}\)|\(d{3,4}\)/g, "(\\w{3,})");
@@ -211,99 +231,14 @@ var DateTime = (function() {
     console.log(re);
 
     var matches = dateString.match(re);
-    console.log(matches);
-    // datetime.day = parseInt(matches[matches[1]]);
-    // datetime.year = parseInt(matches[3]);
-    // datetime.month = getMonthFromName(matches[2]);
-    // datetime.hours = parseInt(matches[4]);
-    // datetime.minutes = parseInt(matches[5]);
-    // datetime.seconds = 0;
-    var yearPos = -1;
-    var padYear = false;
-    if (positions.indexOf("(yyyy)") >= 0) {
-      yearPos = positions.indexOf("(yyyy)") + 1;
-    }
-    else if (positions.indexOf("(yy)") >= 0) {
-      yearPos = positions.indexOf("(yy)") + 1;
-      padYear = true;
-    }
-    var year = yearPos > 0 ? parseInt(matches[yearPos]) : 2013;
 
-    if (padYear) {
-      if (year < 30) {
-        year += 2000;
-      }
-      else {
-        year += 1900;
-      }
-    }
-    datetime.year = year;
+    datetime.year = setYearFromFormatString(matches, positions);
 
-    var monthPos = -1;
-    var useIntMonth = true;
-    if (positions.indexOf("(MMMM)") >= 0) {
-      monthPos = positions.indexOf("(MMMM)") + 1;
-      useIntMonth = false;
-    }
-    else if (positions.indexOf("(MMM)") >= 0) {
-      monthPos = positions.indexOf("(MMM)") + 1;
-      useIntMonth = false;
-    }
-    else if (positions.indexOf("(MM)") >= 0) {
-      monthPos = positions.indexOf("(MM)") + 1;
-    }
-    else if (positions.indexOf("(M)") >= 0) {
-      monthPos = positions.indexOf("(M)") + 1;
-    }
+    datetime.month = setMonthFromFormatString(matches, positions);
 
-    if (useIntMonth) {
-      datetime.month = parseInt(matches[monthPos]);
-    }
-    else {
-      // Select from the array;
-      if (matches[monthPos].length > 3) {
-        datetime.month = monthName.indexOf(matches[monthPos]) + 1;
-      }
-      else {
-        var shortMonthNames = [];
-        for (var i = 0; i < monthNames.length; i++) {
-          shortMonthNames.push(monthNames[i].slice(0,3));
-        }
-        datetime.month = shortMonthNames.indexOf(matches[monthPos]) + 1;
-      }
-    }
-    var dayPos = -1;
-    var zeropadded = false;
-    if (positions.indexOf("(dd)") >= 0) {
-      dayPos = positions.indexOf("(dd)") + 1;
-      zeropadded = true;
-    }
-    else if (positions.indexOf("(d)") >= 0) {
-      dayPos = positions.indexOf("(d)") + 1;
-    }
+    datetime.day = setDayFromFormatString(matches, positions);
 
-    var day = dayPos > 0 ? matches[dayPos] : 1;
-    datetime.day = parseInt(zeropadded ? unzeropad(day) : day);
-
-    var hoursPos = -1;
-    zeropadded = false;
-    if (positions.indexOf("(HH)") >= 0) {
-      hoursPos = positions.indexOf("(HH)") + 1;
-      zeropadded = true;
-    }
-    else if (positions.indexOf("(hh)") >= 0) {
-      hoursPos = positions.indexOf("(hh)") + 1;
-      zeropadded = true;
-    }
-    else if (positions.indexOf("(H)") >= 0) {
-      hoursPos = positions.indexOf("(H)") + 1;
-    }
-    else if (positions.indexOf("(h)") >= 0) {
-      hoursPos = positions.indexOf("(h)") + 1;
-    }
-    var hours = hoursPos > 0 ? matches[hoursPos] : 0;
-    hours = zeropadded ? unzeropad(hours) : hours;
-    datetime.hours = parseInt(hours);
+    datetime.hours = setHoursFromFormatString(matches, positions);
 
     if (positions.indexOf("tt") >= 0 || positions.indexOf("TT") >= 0) {
       if (matches[positions.indexOf("tt") + 1] == "pm" || matches[positions.indexOf("TT") + 1] == "PM") {
@@ -313,20 +248,10 @@ var DateTime = (function() {
       }
     }
 
-    var minPos = -1;
-    if (positions.indexOf("(mm)") >= 0) {
-      minPos = positions.indexOf("(mm)") + 1;
-    }
-    datetime.minutes = minPos > 0 ? parseInt(matches[minPos]) : 0;
+    datetime.minutes = setMinutesFromFormatString(matches, positions);
 
-    var secPos = -1;
-    if (positions.indexOf("(ss)") >= 0) {
-      secPos = positions.indexOf("(ss)") + 1;
-    }
-    datetime.seconds = secPos > 0 ? parseInt(matches[secPos]) : 0;
+    datetime.seconds = setSecondsFromFormatString(matches, positions);
 
-    console.log(datetime.year);
-    console.log(datetime.month);
     setMeridian(datetime);
     return datetime;
   }
@@ -360,19 +285,161 @@ var DateTime = (function() {
     return datetime;
   }
 
+  /**
+   * @private
+   *
+   * Determines the maximum number of days available in a given month. This is easy, except
+   * when dealing with February and leap years.
+   *
+   * @param {DateTime} datetime The current DateTime instance.
+   * @returns {number} The maximum number of days in the month specified by datetime.
+   */
+  function maxDaysInMonth(datetime) {
+    var index = datetime.month - 1;
+    var max = daysInMonth[index];
+    if (index == 1) {
+      // 29 days in Feb for leap years for the millenium and any multiple of 4 not the turn of a century.
+      if (datetime.year % 1000 == 0 || (datetime.year % 4 == 0 && datetime.year % 100 != 0)) {
+        max += 1;
+      }
+    }
+    return max;
+  }
+
   function getMonthFromName(monthName) {
     for (var i = 0; i < monthNames.length; i++) {
       if (monthName.slice(0,3).toUpperCase() == monthNames[i].slice(0,3).toUpperCase()) {
         return i+1;
       }
     }
-    return 0;
+    return -1;
+  }
+
+  /**
+   * @private
+   *
+   * Sets the year value based on the matches found in the provided format string.
+   *
+   * @param {Array} matches The matches from the regular expression.
+   * @param {Array} positions The positional references for the year entries.
+   */
+  function setYearFromFormatString(matches, positions) {
+    var position = -1;
+    var padYear = false;
+    if (positions.indexOf("(yyyy)") >= 0) {
+      position = positions.indexOf("(yyyy)") + 1;
+    }
+    else if (positions.indexOf("(yy)") >= 0) {
+      position = positions.indexOf("(yy)") + 1;
+      padYear = true;
+    }
+    var year = position > 0 ? parseInt(matches[position]) : 2013;
+
+    if (padYear && year.toString().length == 2) {
+      if (year < 30) {
+        year += 2000;
+      }
+      else {
+        year += 1900;
+      }
+    }
+    return year;
+  }
+
+  /**
+   * @private
+   *
+   * Sets the month value based on the matches found in the provided format string.
+   *
+   * @param {Array} matches The matches returned by the regular expression.
+   * @param {Array} positions The positional reference for each month value within the matches array.
+   * @returns {number} The month number between 1 and 12.
+   */
+  function setMonthFromFormatString(matches, positions) {
+    var position = -1;
+    var useIntMonth = true;
+    if (positions.indexOf("(MMMM)") >= 0) {
+      position = positions.indexOf("(MMMM)") + 1;
+      useIntMonth = false;
+    }
+    else if (positions.indexOf("(MMM)") >= 0) {
+      position = positions.indexOf("(MMM)") + 1;
+      useIntMonth = false;
+    }
+    else if (positions.indexOf("(MM)") >= 0) {
+      position = positions.indexOf("(MM)") + 1;
+    }
+    else if (positions.indexOf("(M)") >= 0) {
+      position = positions.indexOf("(M)") + 1;
+    }
+    return useIntMonth ? parseInt(matches[position]) : getMonthFromName(matches[position]);
+  }
+
+  /**
+   * @private
+   *
+   * Sets the day value from the matches found in the provided format string.
+   */
+  function setDayFromFormatString(matches, positions) {
+    var position = -1;
+    var zeropadded = false;
+    if (positions.indexOf("(dd)") >= 0) {
+      position = positions.indexOf("(dd)") + 1;
+      zeropadded = true;
+    }
+    else if (positions.indexOf("(d)") >= 0) {
+      position = positions.indexOf("(d)") + 1;
+    }
+
+    var day = position > 0 ? matches[position] : 1;
+    return parseInt(zeropadded ? unzeropad(day) : day);
+  }
+
+  function setHoursFromFormatString(matches, positions) {
+    var position = -1;
+    zeropadded = false;
+    if (positions.indexOf("(HH)") >= 0) {
+      position = positions.indexOf("(HH)") + 1;
+      zeropadded = true;
+    }
+    else if (positions.indexOf("(hh)") >= 0) {
+      position = positions.indexOf("(hh)") + 1;
+      zeropadded = true;
+    }
+    else if (positions.indexOf("(H)") >= 0) {
+      position = positions.indexOf("(H)") + 1;
+    }
+    else if (positions.indexOf("(h)") >= 0) {
+      position = positions.indexOf("(h)") + 1;
+    }
+    var hours = position > 0 ? matches[position] : 0;
+    hours = zeropadded ? unzeropad(hours) : hours;
+    return parseInt(hours);
+  }
+
+  function setMinutesFromFormatString(matches, positions) {
+    var position = -1;
+    if (positions.indexOf("(mm)") >= 0) {
+      position = positions.indexOf("(mm)") + 1;
+    }
+    return position > 0 ? parseInt(matches[position]) : 0;
+  }
+
+  function setSecondsFromFormatString(matches, positions) {
+    var position = -1;
+    if (positions.indexOf("(ss)") >= 0) {
+      position = positions.indexOf("(ss)") + 1;
+    }
+    return position > 0 ? parseInt(matches[position]) : 0;
   }
 
   /**
    * @private
    *
    * Default initialization to right now.
+   *
+   * @param {DateTime} datetime The current DateTime instance.
+   * @returns {DateTime} The current DateTime instance.
    */
   function initDefault(datetime) {
     var d = new Date();
@@ -390,13 +457,24 @@ var DateTime = (function() {
    * @private
    *
    * Finds the meridian for the time, i.e. "am" or "pm".
+   *
+   * @param {number} hour The hour of the day in 24-hour format.
    */
   function getMeridian(hour) {
     return hour < 12 ? "am" : "pm";
   }
 
+  /**
+   * @private
+   *
+   * Sets the meridian property based on the value of the hours property.
+   *
+   * @param {DateTime} datetime The current DateTime instance.
+   * @returns {DateTime} The current DateTime instance.
+   */
   function setMeridian(datetime) {
     datetime.meridian = getMeridian(datetime.hours);
+    return datetime;
   }
 
   /**
@@ -417,9 +495,13 @@ var DateTime = (function() {
    * @private
    *
    * Creates a formatted string representation of the DateTime object.
+   *
+   * @param {DateTime} datetime The current DateTime instance.
+   * @param {string} formatString The format string to use for display.
+   * @returns {string} The formatted DateTime instance.
    */
   function toFormattedString(datetime, formatString) {
-    var datestring = makeRegExpy(formatString);
+    var datestring = parameterize(formatString);
     datestring = datestring.replace("(yyyy)", datetime.year);
     datestring = datestring.replace("(yy)", datetime.year.toString().slice(2));
     datestring = datestring.replace("(MMMM)", datetime.getMonthName());
@@ -441,7 +523,19 @@ var DateTime = (function() {
     return datestring;
   }
 
-  function makeRegExpy(string) {
+  /**
+   * @private
+   *
+   * Parameterizes a format string so that we don't accidentally overwrite other elements.
+   * Individual elements are replaced with versions in parentheses.
+   *
+   * Example:
+   *    "dddd, d/MMM/yyyy hh:mmtt" -> "(dddd), (d)/(MMM)/(yyyy) (hh):(mm)(tt)"
+   *
+   * @param {string} string The format string
+   * @returns {string} Parameterized version of the format string.
+   */
+  function parameterize(string) {
     string = string.replace(/(y{2,4})/g, "($1)");
     string = string.replace(/(M{1,4})/g, "($1)");
     string = string.replace(/(d{1,4})/g, "($1)");
@@ -449,24 +543,29 @@ var DateTime = (function() {
     string = string.replace(/(m{2})/g, "($1)");
     string = string.replace(/(s{2})/g, "($1)");
     string = string.replace(/(t{2})/ig, "($1)");
-    console.log(string);
     return string;
-  }
-
-  function createRegExpFromString(string) {
-
-
   }
 
   /**
    * @private
    *
-   * Zero-pads a number, i.e. if less than ten, prefix with "0".
+   * Zero-pads a number, i.e. if less than ten, prefix with "0".\
+   *
+   * @param {number} number The number to be padded.
+   * @returns {string} The number with '0' prefixed for values less than 10.
    */
   function zeropad(number) {
     return number < 10 ? "0" + number : "" + number;
   }
 
+  /**
+   * @private
+   *
+   * Un-zeropads the number by stripping the leading '0' for numbers less than 10.
+   *
+   * @param {string} number The string representation of the number.
+   * @returns {number} The number, with any leading '0' removed.
+   */
   function unzeropad(number) {
     return number.substring(0,1) == "0" ? number.substring(1) : number;
   }
