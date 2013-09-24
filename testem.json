@@ -1,0 +1,8 @@
+{
+  "framework": "mocha",
+  "src_files": [
+  	"src/*.js",
+  	"spec/chai.js",
+  	"spec/*.spec.js"
+  ]
+}
