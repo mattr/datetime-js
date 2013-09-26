@@ -1,4 +1,28 @@
 /**
+ * Function helpers
+ */
+if (typeof String.prototype.trim !== "function") {
+  String.prototype.trim = function() {
+    this.replace(/^\s+|\s+$/, '');
+  };
+}
+if (typeof Array.prototype.indexOf !== "function") {
+  Array.prototype.indexOf = function(element) {
+    for (var i = 0; i < this.length; i++) {
+      if (this[i] == element) { return i; }
+    }
+    return -1;
+  }
+}
+if (typeof Array.prototype.lastIndexOf !== "function") {
+  Array.prototype.lastIndexOf = function(element) {
+    for (var i = this.length; i--;) {
+      if (this[i] == element) { return i; }
+    }
+    return -1;
+  }
+}
+/**
  * DateTime
  * ========
  *
@@ -155,7 +179,7 @@ var DateTime = (function() {
      *
      * @alias getMonthName
      */
-    monthName: this.getMonthName,
+    monthName: function(abbreviated) { return this.getMonthName(abbreviated); },
 
     /**
      * Gets the name of the day of the week.
@@ -181,7 +205,7 @@ var DateTime = (function() {
      *
      * @alias getDayName
      */
-    dayName: this.getDayName,
+    dayName: function(abbreviated) { return this.getDayName(abbreviated); },
 
     /**
      * Gets the hours attribute in 24 or 12 hour time.
@@ -218,13 +242,7 @@ var DateTime = (function() {
         return toFormattedString(this, "yyyy-MM-dd HH:mm:ss");
       }
       else {
-        var valid = validateFormatString(formatString);
-        if (valid) {
-          return toFormattedString(this, formatString);
-        }
-        else {
-          throw "Invalid format string in #toString: " + formatString;
-        }
+        return toFormattedString(this, formatString);
       }
     }
   };
@@ -266,7 +284,7 @@ var DateTime = (function() {
     "Sunday",
     "Monday",
     "Tuesday",
-    "Wendesday",
+    "Wednesday",
     "Thursday",
     "Friday",
     "Saturday"
