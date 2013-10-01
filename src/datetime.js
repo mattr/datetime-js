@@ -1,28 +1,4 @@
 /**
- * Function helpers
- */
-if (typeof String.prototype.trim !== "function") {
-  String.prototype.trim = function() {
-    this.replace(/^\s+|\s+$/, '');
-  };
-}
-if (typeof Array.prototype.indexOf !== "function") {
-  Array.prototype.indexOf = function(element) {
-    for (var i = 0; i < this.length; i++) {
-      if (this[i] == element) { return i; }
-    }
-    return -1;
-  }
-}
-if (typeof Array.prototype.lastIndexOf !== "function") {
-  Array.prototype.lastIndexOf = function(element) {
-    for (var i = this.length; i--;) {
-      if (this[i] == element) { return i; }
-    }
-    return -1;
-  }
-}
-/**
  * DateTime
  * ========
  *
@@ -78,7 +54,8 @@ var DateTime = (function() {
 
   DateTime.prototype = {
     /**
-     * Initializes the DateTime instance dynamically based on the provided arguments.
+     * Initializes the DateTime instance dynamically based on the provided 
+     * arguments.
      *
      * The following cases are supported:
      *  1. No arguments: defaults to a new DateTime of today.
@@ -89,6 +66,13 @@ var DateTime = (function() {
      *     date time as if the arguments are specified as year, month, day, 
      *     hours, minutes, seconds or part thereof.
      *
+     * This method may be called directly in place of the constructor to 
+     * initialize without validation, or to call validation separately, e.g.
+     *
+     *    var datetime = DateTime.init(2112,12,21);
+     *    // ... other stuff ...
+     *    datetime.validate();
+     *
      * @param {Array} args The arguments array from the constructor.
      * @returns {DateTime} The DateTime instance.
      */
@@ -96,7 +80,9 @@ var DateTime = (function() {
       if (args.length == 0) {
         initDefault(this);
       }
-      else if (args.length == 2 && typeof(args[0]) == "string" && typeof(args[1]) == "string") {
+      else if (args.length == 2 && 
+               typeof(args[0]) == "string" && 
+               typeof(args[1]) == "string") {
         initFromFormatString(this, args[0], args[1]);
       }
       else if (args.length == 1 && typeof(args[0]) == "string") {
@@ -197,7 +183,7 @@ var DateTime = (function() {
         return day;
       }
       else {
-        throw errorMessage("#getDayName", arguments.push("[@param abbreviated: " + abbreviated + "]"));
+        throw errorMessage("#getDayName", arguments);
       }
     },
     /**
@@ -223,7 +209,7 @@ var DateTime = (function() {
         return hours;
       }
       else {
-        throw errorMessage("#getHours", arguments.push("[useTwentyFourHourFormat: " + useTwentyFourHourFormat + "]"));
+        throw errorMessage("#getHours", arguments);
       }
     },
     /**
@@ -468,12 +454,13 @@ var DateTime = (function() {
 
     if (pad && year.toString().length == 2) {
       // For padding, we set dates from 1930-2029 by default.
-      if (year < 30) {
-        year += 2000;
-      }
-      else {
-        year += 1900;
-      }
+      year += year < 30 ? 2000 : 1900;
+      // if (year < 30) {
+      //   year += 2000;
+      // }
+      // else {
+      //   year += 1900;
+      // }
     }
     return year;
   }

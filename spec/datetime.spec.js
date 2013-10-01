@@ -1,7 +1,7 @@
 var should = chai.should();
 
 describe('DateTime', function() {
-  describe("#init", function() {
+  describe(".ctor", function() {
     it("should default to the current date and time if no parameters passed", function() {
       var datetime = new DateTime();
       var date = new Date();
@@ -106,56 +106,5 @@ describe('DateTime', function() {
     //   var datetime = new DateTime(new object());
     //   datetime.year.should.equal(undefined);
     // });
- }); // #init
-  
-  describe("#getMonthName", function() {
-    it("should return the name of the month specified by the #month attribute", function() {
-      var datetime = new DateTime(2013,12);
-      datetime.getMonthName().should.equal("December");
-    });
-    it("should abbreviate the month name if `true` is passed as parameter", function() {
-      var datetime = new DateTime(2013,12);
-      datetime.getMonthName(true).should.equal("Dec");
-    });
-  }); // #getMonthName
-  describe("#monthName", function() {
-    it("should function as an alias for #getMonthName", function() {
-      var datetime = new DateTime(2013,2);
-      datetime.monthName().should.equal("February");
-      datetime.monthName(true).should.equal("Feb");
-    });
-  }); // #monthName
-
-  describe("#getDayName", function() {
-    it("should return the day of the week", function() {
-      var datetime = new DateTime(2012,12,12);
-      datetime.getDayName().should.equal("Wednesday");
-    });
-    it("should abbreviate the day of the week if passed `true` as a parameter", function() {
-      var datetime = new DateTime(2012,12,12);
-      datetime.getDayName(true).should.equal("Wed");
-    });
-  }); // #getDayName
-  describe("#dayName", function() {
-    it("should function as an alias for #getDayName", function() {
-      var datetime = new DateTime(2012,12,12);
-      datetime.dayName().should.equal("Wednesday");
-      datetime.dayName(true).should.equal("Wed");
-    });
-  }); // #dayName
-
-  describe("#getHours", function() {
-    it("should return the hours in 12-hour format if no parameters passed", function() {
-      var datetime = new DateTime(2012,12,21,21,30);
-      datetime.getHours().should.equal(9);
-    });
-    it("should return the hours in 12-hour format if passed `false` as a parameter", function() {
-      var datetime = new DateTime(2012,12,21,21,30);
-      datetime.getHours().should.equal(9);
-    });
-    it("should return the hours in 24-hour format if passed `true` as a parameter", function() {
-      var datetime = new DateTime(2012,12,21,21,30);
-      datetime.getHours(true).should.equal(21);
-    });
-  });
+  }); // .ctor
 });
