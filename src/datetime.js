@@ -248,12 +248,14 @@ var DateTime = (function() {
         errors.push("seconds");
         valid = false;
       }
-     if (valid) {
-        return valid;
-      }
-      else {
-        throw errorMessage("#validate", errors);
-      }
+      console.log(errorMessage("#validate", errors));
+      return valid;
+     // if (valid) {
+     //    return valid;
+     //  }
+     //  else {
+     //    throw errorMessage("#validate", errors);
+     //  }
     },
     /**
      * Gets the name of the month.
@@ -414,7 +416,7 @@ var DateTime = (function() {
    * @returns {boolean} True if the seconds fall within the acceptable range;
    *                    false otherwise.
    */
-  function validateSeconds(seconds) {
+  function validateSeconds(datetime) {
     return datetime.seconds >= 0 && datetime.seconds < 60;
   }
 
