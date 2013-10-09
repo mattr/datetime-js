@@ -1,8 +1,10 @@
 {
   "framework": "mocha",
   "src_files": [
+  	"src/lib/*.js",
   	"src/*.js",
   	"spec/chai.js",
-  	"spec/*.spec.js"
+  	"spec/datetime.spec.js",
+  	"spec/datetime.get*.spec.js"
   ]
 }

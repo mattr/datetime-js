@@ -14,7 +14,7 @@ describe('DateTime', function() {
       datetime.meridian.should.equal(date.getHours() > 12 ? "pm" : "am");
     });
 
-    it("should parse a single string parameter using the ISO date format", function() {
+    it("should parse a single string parameter using the default date format", function() {
       var datetime = new DateTime("2013-07-23 15:00:00");
       datetime.year.should.equal(2013);
       datetime.month.should.equal(7);

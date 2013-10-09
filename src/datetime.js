@@ -54,7 +54,8 @@ var DateTime = (function() {
   /**
    * @private
    *
-   * The names of the months to match when using #toString, or #getMonthName
+   * The names of the months to match when using #toString, or #getMonthName,
+   * or when parsing an input string featuring month names.
    */
   var monthNames = [
     "January",
@@ -92,6 +93,14 @@ var DateTime = (function() {
   /**
    * @private
    *
+   * The length of the abbreviated month and day names. For standard English
+   * calendars, this is 3. Other languages, however, may use alternate lengths.
+   */
+  var abbreviationLength = 3;
+
+  /**
+   * @private
+   *
    * The default format for parsing input strings and pretty printing with
    * DateTime#toString().
    */
@@ -112,6 +121,7 @@ var DateTime = (function() {
    * postional information for each.
    */
   var formatStringMatcher = /(\(d{1,4}\)|\(M{1,4}\)|\(y{2,4}\)|\([hH]{1,2}\)|\(m{1,2}\)|\(s{1,2}\)|\([tT]{2}\))/g
+
 
   /***************************************************************************\
    *                                                                         *
@@ -160,6 +170,20 @@ var DateTime = (function() {
     return defaultFormat;
   }
 
+  /**
+   * Sets the default length for abbreviated month and day names.
+   */
+  DateTime.setAbbreviationLength = function(len) {
+    abbreviationLength = len;
+  }
+
+  /**
+   * Retrieves the defined length for abbreviated month and day names.
+   */
+  DateTime.getAbbreviationLength = function() {
+    return abbreviationLength;
+  }
+
   /***************************************************************************\
    *                                                                         *
    * Function prototypes. These are the functions which will be publicly     *
@@ -186,11 +210,11 @@ var DateTime = (function() {
      *
      * Providing any other options to the #init function will throw an Error.
      *
-     * @param {Array} args The arguments array from the constructor.
+     * @param {arguments} args The arguments object from the constructor.
      * @returns {DateTime} The DateTime instance.
      */
     init: function(args) {
-      if (args.length == 0) {
+      if (args === undefined || args.length == 0) {
         initDefault(this);
       }
       else if (args.length == 2 &&
@@ -222,33 +246,40 @@ var DateTime = (function() {
     validate: function() {
       // Let's assume that people can write the date and it is valid.
       var valid = true;
-      var errors = [];
+      var errors = new Array();
+      var datetime = this;
+      console.log("Beginning validation of datetime: " + datetime);
 
-      if (validateMonth(this) == false) {
+      if (validateMonth(datetime) == false) {
+        console.log("Validation of month failed: " + datetime.month);
         errors.push("month");
         valid = false;
       }
 
-      if (validateDay(this) == false) {
+      if (validateDay(datetime) == false) {
+        console.log("Validation of day failed: " + datetime.day);
         errors.push("day");
         valid = false;
       }
 
-      if (validateHours(this) == false) {
+      if (validateHours(datetime) == false) {
+        console.log("Validation of hours failed: " + datetime.hours);
         errors.push("hours");
         valid = false;
       }
 
-      if (validateMinutes(this) == false) {
+      if (validateMinutes(datetime) == false) {
+        console.log("Validation of minutes failed: " + datetime.minutes);
         errors.push("minutes");
         valid = false;
       }
 
-      if (validateSeconds(this) == false) {
+      if (validateSeconds(datetime) == false) {
+        console.log("Validation of seconds failed: " + datetime.seconds);
         errors.push("seconds");
         valid = false;
       }
-      console.log(errorMessage("#validate", errors));
+      console.log("Validation complete. Date is " + (valid ? "valid" : "invalid") + ".");
       return valid;
      // if (valid) {
      //    return valid;
@@ -266,7 +297,7 @@ var DateTime = (function() {
     getMonthName: function(abbreviated) {
       var monthName = monthNames[this.month - 1];
       if (abbreviated === true) {
-        return monthName.slice(0,3);
+        return monthName.slice(0,abbreviationLength);
       }
       else if (abbreviated === false || abbreviated === undefined) {
         return monthName;
@@ -292,7 +323,7 @@ var DateTime = (function() {
       var date = new Date(this.year, this.month - 1, this.day);
       var day = dayNames[date.getDay()];
       if (abbreviated === true) {
-        return day.slice(0,3);
+        return day.slice(0,abbreviationLength);
       }
       else if (abbreviated === false || abbreviated === undefined) {
         return day;
@@ -315,12 +346,12 @@ var DateTime = (function() {
      * @returns {integer} The hour, in twenty-four (default) or twelve-hour format.
      */
     getHours: function(useTwentyFourHourFormat) {
-      var hours = this.hours % 12;
-      if (hours == 0) hours = 12;
       if (useTwentyFourHourFormat === true) {
         return this.hours;
       }
       else if (useTwentyFourHourFormat === false || useTwentyFourHourFormat === undefined) {
+        var hours = this.hours % 12;
+        if (hours == 0) hours = 12;
         return hours;
       }
       else {
@@ -332,7 +363,8 @@ var DateTime = (function() {
      *
      * Overrides the default #toString method for the object, allowing us to
      * specify the formatting of the date. Defaults to the ISO standard
-     * "yyyy-MM-dd HH:mm:ss".
+     * "yyyy-MM-dd HH:mm:ss" unless this value is overridden at the class 
+     * level.
      *
      * @param {string} formatString The format string to display the output.
      * @returns {string}  The date in the specified format, or the default
@@ -365,7 +397,7 @@ var DateTime = (function() {
    *                    false otherwise.
    */
   function validateMonth(datetime) {
-    return datetime.month > 0 && datetime.month < 12;
+    return datetime.month > 0 && datetime.month <= 12;
   }
 
   /**
@@ -434,21 +466,33 @@ var DateTime = (function() {
   function initFromFormatString(datetime, dateString, formatString) {
     var parameterizedFormatString = parameterize(formatString),
         positions = parameterizedFormatString.match(formatStringMatcher),
-        parameterMatcher = parameterizedFormatString,
+        parameterMatcher = "",
         parameterMatches = [];
+
+    // Replaces each of the following in turn with the corresponding regular 
+    // expression function:
+    //  1. Year;
+    //  2. Month and day names;
+    //  3. Month and day numbers, hours, minutes and seconds;
+    //  4. Meridian indicator.
+    parameterMatcher = parameterizedFormatString
+                        .replace(/\(y{2,4}\)/, "(\\d{2,4})")
+                        .replace(/\(M{3,4}\)|\(d{3,4}\)/g, "(\\w{3,})")
+                        .replace(/\(m{1,2}\)|\(d{1,2}\)|\(h{1,2}\)|\(s{1,2}\)/gi, "(\\d{1,2})")
+                        .replace(/\(t{2}\)/gi, "(\\w{2})");
 
     // Replaces the year format with the corresponding regular expression
     // function.
-    parameterMatcher = parameterMatcher.replace(/\(y{2,4}\)/, "(\\d{2,4})");
+    // parameterMatcher = parameterMatcher.replace(/\(y{2,4}\)/, "(\\d{2,4})");
     // Replaces month and day names with the corresponding regular expression
     // function.
-    parameterMatcher = parameterMatcher.replace(/\(M{3,4}\)|\(d{3,4}\)/g, "(\\w{3,})");
+    // parameterMatcher = parameterMatcher.replace(/\(M{3,4}\)|\(d{3,4}\)/g, "(\\w{3,})");
     // Replaces month numbers, day numbers, hours, minutes and seconds with the
     // corresponding regular expression function.
-    parameterMatcher = parameterMatcher.replace(/\(m{1,2}\)|\(d{1,2}\)|\(h{1,2}\)|\(s{1,2}\)/gi, "(\\d{1,2})");
+    // parameterMatcher = parameterMatcher.replace(/\(m{1,2}\)|\(d{1,2}\)|\(h{1,2}\)|\(s{1,2}\)/gi, "(\\d{1,2})");
     // Replaces the meridian indicator with the corresponding regular
     // expression function.
-    parameterMatcher = parameterMatcher.replace(/\(t{2}\)/gi, "(\\w{2})");
+    // parameterMatcher = parameterMatcher.replace(/\(t{2}\)/gi, "(\\w{2})");
 
     // Find all the matches within the regular expression function.
     parameterMatches = dateString.match(parameterMatcher);
@@ -719,13 +763,13 @@ var DateTime = (function() {
    * @returns {DateTime} The current DateTime instance.
    */
   function initDefault(datetime) {
-    var d = new Date();
-    datetime.year = d.getFullYear();
-    datetime.month = d.getMonth() + 1;
-    datetime.day = d.getDate();
-    datetime.hours = d.getHours();
-    datetime.minutes = d.getMinutes();
-    datetime.seconds = d.getSeconds();
+    var date = new Date();
+    datetime.year = date.getFullYear();
+    datetime.month = date.getMonth() + 1;
+    datetime.day = date.getDate();
+    datetime.hours = date.getHours();
+    datetime.minutes = date.getMinutes();
+    datetime.seconds = date.getSeconds();
     datetime.meridian = getMeridian(this.hours);
     return datetime;
   }
@@ -779,25 +823,26 @@ var DateTime = (function() {
    * @returns {string} The formatted DateTime instance.
    */
   function toFormattedString(datetime, formatString) {
-    var datestring = parameterize(formatString);
-    datestring = datestring.replace("(yyyy)", datetime.year);
-    datestring = datestring.replace("(yy)", datetime.year.toString().slice(2));
-    datestring = datestring.replace("(MMMM)", datetime.getMonthName());
-    datestring = datestring.replace("(MMM)", datetime.getMonthName(true));
-    datestring = datestring.replace("(MM)", zeropad(datetime.month));
-    datestring = datestring.replace("(M)", datetime.month);
-    datestring = datestring.replace("(dddd)", datetime.getDayName());
-    datestring = datestring.replace("(ddd)", datetime.getDayName(true));
-    datestring = datestring.replace("(dd)", zeropad(datetime.day));
-    datestring = datestring.replace("(d)", datetime.day);
-    datestring = datestring.replace("(HH)", zeropad(datetime.hours));
-    datestring = datestring.replace("(H)", datetime.hours);
-    datestring = datestring.replace("(hh)", zeropad(datetime.getHours(false)));
-    datestring = datestring.replace("(h)", datetime.getHours(false));
-    datestring = datestring.replace("(mm)", zeropad(datetime.minutes));
-    datestring = datestring.replace("(ss)", zeropad(datetime.seconds));
-    datestring = datestring.replace("(TT)", datetime.meridian.toUpperCase());
-    datestring = datestring.replace("(tt)", datetime.meridian.toLowerCase());
+    var datestring = parameterize(formatString).replace("(yyyy)", datetime.year)
+                                               .replace("(yy)", datetime.year.toString().slice(2))
+                                               .replace("(MMMM)", datetime.getMonthName())
+                                               .replace("(MMM)", datetime.getMonthName(true))
+                                               .replace("(MM)", zeropad(datetime.month))
+                                               .replace("(M)", datetime.month)
+                                               .replace("(dddd)", datetime.getDayName())
+                                               .replace("(ddd)", datetime.getDayName(true))
+                                               .replace("(dd)", zeropad(datetime.day))
+                                               .replace("(d)", datetime.day)
+                                               .replace("(HH)", zeropad(datetime.hours))
+                                               .replace("(H)", datetime.hours)
+                                               .replace("(hh)", zeropad(datetime.getHours(false)))
+                                               .replace("(h)", datetime.getHours(false))
+                                               .replace("(mm)", zeropad(datetime.minutes))
+                                               .replace("(m)", zeropad(datetime.minutes))
+                                               .replace("(ss)", zeropad(datetime.seconds))
+                                               .replace("(s)", zeropad(datetime.seconds))
+                                               .replace("(TT)", datetime.meridian.toUpperCase())
+                                               .replace("(tt)", datetime.meridian.toLowerCase());
     return datestring;
   }
 
