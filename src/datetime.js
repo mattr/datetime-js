@@ -149,10 +149,22 @@ var DateTime = (function() {
     return monthNames;
   }
 
+  /**
+   * Sets the day names (e.g. to change language).
+   *
+   * @param {Array} names The array of day names.
+   *
+   * @note THIS IS NOT VALIDATED!
+   */
   DateTime.setDayNames = function(names) {
     dayNames = names;
   }
 
+  /**
+   * Retrieves the array of day names.
+   *
+   * @returns {Array} The array of day names.
+   */
   DateTime.getDayNames = function() {
     return dayNames;
   }
@@ -281,13 +293,8 @@ var DateTime = (function() {
       }
       console.log("Validation complete. Date is " + (valid ? "valid" : "invalid") + ".");
       return valid;
-     // if (valid) {
-     //    return valid;
-     //  }
-     //  else {
-     //    throw errorMessage("#validate", errors);
-     //  }
     },
+
     /**
      * Gets the name of the month.
      *
@@ -317,7 +324,7 @@ var DateTime = (function() {
      * Gets the name of the day of the week.
      *
      * @param {boolean} abbreviated  Whether the returned value should be abbreviated.
-     * @returns {string} The name of the month, either abbreviated to four letters or the full name (default).
+     * @returns {string} The name of the day, either abbreviated to three letters or the full name (default).
      */
     getDayName: function(abbreviated) {
       var date = new Date(this.year, this.month - 1, this.day);
@@ -363,7 +370,7 @@ var DateTime = (function() {
      *
      * Overrides the default #toString method for the object, allowing us to
      * specify the formatting of the date. Defaults to the ISO standard
-     * "yyyy-MM-dd HH:mm:ss" unless this value is overridden at the class 
+     * "yyyy-MM-dd HH:mm:ss" unless this value is overridden at the class
      * level.
      *
      * @param {string} formatString The format string to display the output.
@@ -469,7 +476,7 @@ var DateTime = (function() {
         parameterMatcher = "",
         parameterMatches = [];
 
-    // Replaces each of the following in turn with the corresponding regular 
+    // Replaces each of the following in turn with the corresponding regular
     // expression function:
     //  1. Year;
     //  2. Month and day names;
@@ -859,14 +866,21 @@ var DateTime = (function() {
    * @returns {string} Parameterized version of the format string.
    */
   function parameterize(string) {
-    string = string.replace(/(y{2,4})/g, "($1)");
-    string = string.replace(/(M{1,4})/g, "($1)");
-    string = string.replace(/(d{1,4})/g, "($1)");
-    string = string.replace(/(h{1,2})/ig, "($1)");
-    string = string.replace(/(m{2})/g, "($1)");
-    string = string.replace(/(s{2})/g, "($1)");
-    string = string.replace(/(t{2})/ig, "($1)");
-    return string;
+    return string.replace(/(y{2,4})/g, "($1)")
+                 .replace(/(M{1,4})/g, "($1)")
+                 .replace(/(d{1,4})/g, "($1)")
+                 .replace(/(h{1,2})/ig, "($1)")
+                 .replace(/(m{2})/g, "($1)")
+                 .replace(/(s{2})/g, "($1)")
+                 .replace(/(t{2})/ig, "($1)");
+    // string = string.replace(/(y{2,4})/g, "($1)");
+    // string = string.replace(/(M{1,4})/g, "($1)");
+    // string = string.replace(/(d{1,4})/g, "($1)");
+    // string = string.replace(/(h{1,2})/ig, "($1)");
+    // string = string.replace(/(m{2})/g, "($1)");
+    // string = string.replace(/(s{2})/g, "($1)");
+    // string = string.replace(/(t{2})/ig, "($1)");
+    // return string;
   }
 
   /**
